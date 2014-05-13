@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.ValidateCodeDao">
+
+   <resultMap type="com.yunos.bbs.po.ValidateCode" id="ValidateCode"></resultMap>
+   <parameterMap type="com.yunos.bbs.po.ValidateCode" id="ValidateCode"></parameterMap>
+   
+   <select id="getValidateCode" parameterType="hashmap" resultMap="ValidateCode">
+   		select id,ckey,value,expireTime,insertTime
+   		from wap_validate_code 
+   		where ckey=#{ckey} and expireTime &gt;#{time}
+   		order by insertTime desc
+   		limit 1
+   </select>
+   
+   <insert id="insertValidateCode" parameterMap="ValidateCode">
+   		insert into wap_validate_code (ckey,value,expireTime,insertTime)
+   		values (#{ckey},#{value},#{expireTime},#{insertTime})
+   </insert>
+   
+   <update id="updateValidateCodeTime" parameterMap="ValidateCode">
+   		update wap_validate_code set expireTime=#{expireTime}
+   		where ckey = #{ckey} and insertTime=#{insertTime}
+   </update>
+
+</mapper>

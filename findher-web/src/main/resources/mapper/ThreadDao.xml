@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.ThreadDao">
+    
+    <resultMap type="com.yunos.bbs.po.Thread" id="Thread"></resultMap>
+ 	<resultMap type="com.yunos.bbs.po.Attachs" id="Attachs"></resultMap>
+ 	
+ 	<select id="getThread" parameterType="hashmap" resultMap="Thread">
+ 		SELECT t.tid as tid,t.fid as fid,t.subject as title,t.replies as replies,t.locked as locked
+ 		FROM pw_threads t  
+ 		left join pw_forums f on t.fid = f.fid
+ 		where 
+ 			t.special = 0 and t.ifshield = 0 and f.f_type='forum'  and t.fid>0
+ 			and t.tid= #{tid}
+ 	</select>
+ 	
+ 	<update id="updateThread" parameterType="hashmap">
+ 		UPDATE pw_threads SET 
+ 			replies=replies+1,hits=hits+1,  
+ 			lastposter =#{lastposter},  
+ 			lastpost = UNIX_TIMESTAMP()
+ 		WHERE tid= #{tid}
+ 	</update>
+ 	
+ 	<select id="getHotTList" parameterType="hashmap" resultMap="Thread">
+ 		  select 
+		    t.tid as tid,t.replies as replies,t.subject as title,t.author as username,
+		  	t.postdate as time,t.digest as digest,t.lastpost as lastpost
+		  from pw_threads t
+		  left join pw_forums f on t.fid = f.fid
+		  where t.special = 0 and t.ifshield = 0 and f.f_type = 'forum' and t.replies > 0  and t.fid>0
+		  and t.lastpost > (UNIX_TIMESTAMP() - 3600*24) 
+		  ORDER BY t.replies desc
+		  limit #{start},#{size}
+ 	</select>
+ 	
+ 	<select id="getThreadsList" parameterType="hashmap" resultMap="Thread">
+ 		select * from
+ 		(
+	 		select * from 
+	 		(
+		 		select t1.tid as tid,t1.replies as replies,t1.subject as title,t1.author as username,
+		 			t1.digest as isDigest, t1.topped as isTop 
+		 		from pw_threads t1 
+		 		left join pw_forums t2 on t1.fid=t2.fid
+				where t1.special = 0 and t1.ifshield = 0 and t2.f_type='forum' and t1.fid =#{fid} 
+					  and t1.topped > 0
+			) A
+			union
+			select * from 
+			(
+		 		select t1.tid as tid,t1.replies as replies,t1.subject as title,t1.author as username,
+		 			t1.digest as isDigest, t1.topped as isTop
+		 		from pw_threads t1 
+		 		left join pw_forums t2 on t1.fid=t2.fid
+				where t1.special = 0 and t1.ifshield = 0 and t2.f_type='forum' and t1.fid =#{fid}
+					and t1.topped = 0
+				order by t1.lastpost desc
+			) B
+		) t
+		limit #{start},#{size}
+ 	</select>
+ 	
+ 	<select id="getThreadDetail" parameterType="hashmap" resultMap="Thread">
+ 		select t.tid as tid,t.subject as title,tm.content as content,t.postdate as time,
+ 			t.author as username,t.replies as replies,tm.ifconvert as ifConvert, t2.allowhide as allowHide, t.locked locked
+ 		from pw_threads t
+		left join pw_tmsgs tm on t.tid = tm.tid
+ 		left join pw_forums t2 on t.fid=t2.fid
+ 		where t.fid>0 and t.special = 0 and t.ifshield = 0 and t2.f_type='forum' and t.tid = #{tid} 
+ 	</select>
+ 	
+ 	<select id="getThreadAttachs" parameterType="hashmap" resultMap="Attachs">
+ 		select t1.aid as aid,t1.name as name,t1.size as size,t1.hits as dwn,t1.attachurl as url,t1.type as type,t1.descrip as descrip
+ 		from pw_attachs t1
+		left join pw_threads t2 on t1.tid=t2.tid
+		left join pw_forums t3 on t2.fid = t3.fid
+ 		where t2.special = 0 and t2.ifshield = 0 and t3.f_type='forum' and t1.tid = #{tid} and t1.pid = 0
+ 		and t2.fid>0
+ 	</select>
+ 	
+ 	<select id="getPostTable" parameterType="int" resultType="int">
+ 		select ptable from pw_threads where tid=#{value} and fid>0
+ 	</select>
+
+ 	<select id="getAliThreadSetting" parameterType="int" resultType="int">
+ 		select is_reply_validate_open from ali_threads_setting where tid = #{value} limit 1
+ 	</select>
+ 	
+ 	<select id="getInfoByTids" parameterType="hashmap" resultMap="Thread">
+ 		select tid as tid,author as username , replies as replies
+ 		from pw_threads
+ 		where fid>0 and  tid in 
+ 		<foreach collection="tids" item="item" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+ 	</select>
+ 	
+ 	<select id="getMemberThreads" parameterType="hashmap" resultMap="Thread">
+ 		select t.tid,t.subject as title,t.replies as replies , t.locked as locked,
+ 			t.digest as isDigest, t.topped as isTop
+ 		from pw_threads t
+ 		left join pw_forums f on  t.fid=f.fid 
+  		where t.authorid = #{uid}  and t.fid > 0 and  t.special =0 and  t.ifshield=0 and f.f_type='forum'
+		order by t.lastpost desc
+		limit #{start},#{size}
+ 	</select>
+ 	
+ 	<select id="getMemberFavorites" parameterType="hashmap" resultMap="Thread">
+ 		select tid,t.subject as title,t.replies as replies,
+ 			t.digest as isDigest, t.topped as isTop
+ 		from pw_collection c
+ 		left join pw_threads t on t.tid = c.typeid 
+ 		left join pw_forums t3 on t.fid = t3.fid 
+ 		where c.uid=${uid} and c.type='postfavor' and t.fid>0 and t3.f_type='forum'  and  t.special =0 and  t.ifshield=0
+		order by c.postdate desc
+		limit #{start},#{size}
+ 	</select>
+ 	
+ 	<select id="getThreadByTid" parameterType="int" resultMap="Thread">
+ 		SELECT t.tid as tid,tm.content as content,t.replies as replies,
+ 			t.authorid as uid,t.author as username,
+ 			t.subject as title,t.lastpost as lastpost
+ 		FROM pw_threads t
+ 		left join pw_tmsgs tm on t.tid = tm.tid 
+ 		left join pw_members m on m.uid = t.authorid
+ 		where 
+ 		    t.fid>0 and 
+ 			t.tid= #{tid}
+ 		limit 1
+ 	</select>
+ 	
+ 	<select id="getUidByTid" parameterType="int" resultType="int">
+ 		SELECT authorid as uid
+ 		FROM pw_threads
+ 		where 
+ 		    fid>0 and tid= #{tid}
+ 		limit 1
+ 	</select>
+ 	
+ 	<select id="getTMainInfo" parameterType="int" resultMap="Thread">
+ 		select t.tid as tid,t.subject as title,t.postdate as time,t.author as username,t.replies as replies, t.locked as locked
+ 		from pw_threads t
+ 		where t.tid=#{tid}  and t.fid>0
+		limit 1
+ 	</select>
+
+ 	<insert id="insertAliThreadSetting" parameterType="int">
+    	insert into ali_threads_setting (tid,is_reply_validate_open)
+    	values (#{tid},'1')
+    </insert>
+    
+    <update id="updateAliThreadSetting" parameterType="int">
+ 		UPDATE ali_threads_setting SET 
+ 			is_reply_validate_open = 1
+ 		WHERE tid= #{tid}
+ 	</update>
+ 	
+ 	<insert id="insertAliMemberSetting" parameterType="int">
+    	insert into ali_members_setting (uid,is_validate_open)
+    	values (#{uid},'1')
+    </insert>
+    
+    <update id="updateAliMemberSetting" parameterType="int">
+ 		UPDATE ali_members_setting SET 
+ 			is_validate_open = 1
+ 		WHERE uid= #{uid}
+ 	</update>
+ 	
+ 	<select id="getAliAlertRecord" parameterType="int" resultType="int">
+ 		select tid from ali_alert_record where tid = #{tid} limit 1
+ 	</select>
+ 	
+ 	<insert id="insertAliAlertRecord" parameterType="int">
+    	insert into ali_alert_record (tid)
+    	values (#{tid})
+    </insert>
+    
+    <insert id="insertThread" parameterType="hashmap" useGeneratedKeys="true" keyProperty="tid">
+ 		INSERT INTO `pw_threads` 
+ 		SET 
+ 			`fid` = #{fid} , `icon` = '0' , `author` = #{author} , `authorid` = #{authorid} , 
+ 			`subject` = #{subject} , `ifcheck` = '1' , `type` = '0' , `postdate` = UNIX_TIMESTAMP() , 
+ 			`lastpost` = UNIX_TIMESTAMP() , `lastposter` = #{lastposter} , `hits` = '1' , 
+ 			`replies` = '0' , `topped` = '0' , `digest` = '0' , `special` = '0' , `state` = '0' , 
+ 			`ifupload` = '0' , `ifmail` = '0' , `anonymous` = '0' , `ptable` = '0' , 
+ 			`ifmagic` = '0' , `ifhide` = '0' , `tpcstatus` = '0' , `modelid` = '0' , 
+ 			`frommob` = '0'
+ 	</insert>
+ 	
+ 	<insert id="insertTmsgs" parameterType="hashmap" >
+ 		INSERT INTO pw_tmsgs 
+ 		SET 
+ 			`tid` =#{tid}, `aid` ='0', `userip` ='0.0.0.0', 
+ 			`ifsign` ='1', `buy` ='', `ipfrom` ='手机端 ', 
+ 			`tags` ='', `ifconvert` ='1', `ifwordsfb` ='1', 
+ 			`content` = #{content}, 
+ 			`magic` =''
+ 	</insert>
+ 	
+ 	<insert id="insertThreadFrom" parameterType="hashmap">
+ 		INSERT INTO  wap_threads_from(tid, phone_type_id)
+ 		values (#{tid},#{phone_type_id})
+ 	</insert>
+ 	
+ 	 <select id="getPushNum" parameterType="hashmap" resultType="int">
+ 	  SELECT  COUNT(*) as num 
+ 	  FROM pw_threads t
+ 	  left join pw_forums f on  t.fid=f.fid 
+ 	  WHERE t.fid>0 and t.authorid=#{uid} and t.special =0 and  t.ifshield=0 and f.f_type='forum'
+ 	</select>
+
+</mapper>

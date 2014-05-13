@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.FavoriteDao">
+    
+    <resultMap type="com.yunos.bbs.po.Favorite" id="Favorite"></resultMap>
+    <select id="getFavoriteCountByUid" parameterType="hashmap" resultType="int">
+ 		SELECT count(c.uid) as favorites 
+ 		FROM pw_collection  c 
+ 		left join  pw_threads  t  on   c.typeid=t.tid 
+ 		left join pw_forums f on  t.fid=f.fid  
+ 		where c.type = 'postfavor'  and c.uid = #{uid} 
+ 			and t.fid>0  and t.special =0 and  t.ifshield=0 and f.f_type='forum' 
+ 			<if test="typeid != null">
+    			and c.typeid = #{typeid}
+    		</if>
+ 	</select>
+    
+    <insert id="insertFavorite" parameterType="hashmap">
+    	INSERT INTO  pw_collection(`type`, `typeid`, `uid`, `username`,
+    							`postdate`, `content`, `ifhidden`, 
+    							`c_num`, `ctid`) 
+    	VALUES (#{type}, #{typeid},  #{uid}, #{username}, unix_timestamp(),#{content},'0',#{c_num},'-1')
+    </insert>
+    
+    
+    <insert id="deleteFavorite" parameterType="hashmap">
+    	DELETE  FROM   pw_collection
+    	WHERE  type=#{type}  and uid=#{uid} and typeid=#{typeid}
+    </insert>
+    
+    <select id="getFavoriteByParams" parameterType="hashmap"  resultMap="Favorite">
+ 		SELECT id,type,typeid,uid
+ 		FROM pw_collection
+ 		where uid = #{uid} and typeid = #{tid} and type = 'postfavor'
+ 		limit 1
+ 	</select>
+    
+</mapper>

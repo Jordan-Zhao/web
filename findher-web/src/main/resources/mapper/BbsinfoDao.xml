@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.BbsinfoDao">
+    
+ 	<update id="updateNewMember" parameterType="hashmap">
+ 		UPDATE pw_bbsinfo SET newmember= #{username} ,totalmember=totalmember+1 WHERE id= '1';
+ 	</update>
+ 	
+ 	<insert id="insertCreditlog" parameterType="hashmap">
+ 	INSERT INTO pw_creditlog 
+ 		(uid,username,ctype,affect,adddate,logtype,ip,descrip) 
+ 	VALUES  (#{uid},#{username},'money','1',UNIX_TIMESTAMP(),'topic_Reply','0.0.0.0',#{descrip})
+	</insert>
+	
+	<select id="getGdcheck" resultType="int">
+		select db_value from pw_config where db_name = 'db_gdcheck'
+	</select>
+	
+</mapper>

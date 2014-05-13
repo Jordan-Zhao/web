@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.ForumDao">
+    
+    <resultMap type="com.yunos.bbs.po.Forum" id="Forum"></resultMap>
+    <select id="getInfoByFids" parameterType="hashmap" resultMap="Forum">
+ 		SELECT fd.fid as fid,fd.topic as topics,fd.article as threads
+ 		FROM pw_forumdata fd left join pw_forums f on fd.fid=f.fid
+ 		where 
+ 			f.type != 'category' and f.f_type = 'forum'
+ 		and 
+ 			fd.fid in
+ 			<foreach collection="fids" item="item" open="(" separator="," close=")">
+ 				#{item}
+ 			</foreach>
+ 	</select>
+    
+    <update id="updateForumAfterReply">
+		UPDATE pw_forumdata SET 
+			tpost = tpost+1,
+			article = article+1 ,
+			lastpost= #{lastpost}  
+		WHERE fid= #{fid}
+    </update>
+ 	
+ 	<select id="getInfoByFid" parameterType="hashmap" resultMap="Forum">
+ 		SELECT f.fid as fid,f.name as title,fd.tpost as today,fd.topic as topics, fd.article as threads
+ 		FROM pw_forums as f
+ 		LEFT JOIN pw_forumdata as fd
+ 			on f.fid = fd.fid
+ 		where 
+ 			f.fid = #{fid} and f.type != 'category' and f.f_type = 'forum'
+ 		limit 1
+ 	</select>
+
+    <select id="getForumByTid" parameterType="int"  resultMap="Forum">
+ 		SELECT t.fid as fid, f.name as name
+ 		FROM pw_threads t
+ 		left join pw_forums f on f.fid = t.fid
+ 		where t.tid= #{tid} and f.type != 'category' and f.f_type = 'forum'
+ 		limit 1
+ 	</select>
+ 	
+ 	<select id="getNameByFid" parameterType="int"  resultMap="Forum">
+ 		SELECT fid as fid, name as name
+ 		FROM pw_forums 
+ 		where fid= #{fid} and type != 'category' and f_type = 'forum'
+ 		limit 1
+ 	</select>
+
+	<select id="getForumByFid" parameterType="int"  resultMap="Forum">
+ 		SELECT 
+ 			f.fid as fid,f.type as type , f.f_type as ftype , f.password as password ,f.cms as cms,
+ 			fe.creditset as creditset,fe.forumset as forumset,fe.commend as commend,
+ 			f.allowpost as allowpost,f.allowread as allowRead
+ 		FROM pw_forums f 
+ 		LEFT JOIN pw_forumsextra fe ON f.fid=fe.fid 
+ 		WHERE f.fid = #{fid} and f.type != 'category' and f.f_type = 'forum'
+ 		limit 1
+ 	</select>
+ 	
+ 	<update id="updateForumAfterPublish" parameterType="hashmap">
+ 		UPDATE pw_forumdata SET tpost=tpost+1,article=article+1,topic=topic+1 WHERE fid= #{fid}
+ 	</update>
+</mapper>

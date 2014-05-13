@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.MemberDao">
+    
+    <resultMap id="member" type="com.yunos.bbs.po.Member"></resultMap>
+    
+    <select id="getSimpleMemberByKp" parameterType="string" resultMap="member">
+ 		select 
+    		mk.kp as kp,m.uid as uid,m.username as username
+    	from pw_members m
+		left join ali_member_kp mk on m.username = mk.username 
+    	where mk.kp = #{value}
+    	limit 1
+    </select>
+    
+    <select id="getMemberByKp" parameterType="string" resultMap="member">
+ 		select 
+    		 mk.kp as kp,m.uid as uid, m.username as username,m.icon as img,m.groups as groups,m.groupid as groupid,m.memberid as memberid, 
+    		 md.lastpost as lastpost, md.todaypost as todaypost,md.monthpost as monthpost,
+    		 md.currency as gold, md.money as coin,md.rvrc/10 as weiwang,
+    		 md.postnum as threads, ug.grouptitle as `group`
+    	from pw_members m
+		left join pw_memberdata md on m.uid = md.uid 
+		left join pw_usergroups ug on ug.gid = m.groupid
+		left join ali_member_kp mk on (m.username = mk.username and mk.valid='Y')
+    	where mk.kp = #{value} and m.groupid != '0' and md.uid is not null
+    	limit 1
+    </select>
+    
+    <select id="getMemberByUsername" parameterType="hashmap" resultMap="member">
+    	select m.uid as uid,m.username as username,m.icon as img, mk.kp as kp 
+    	from pw_members m 
+    	left join ali_member_kp mk on (m.username = mk.username and mk.valid = 'Y')
+    	where m.username = #{value}
+    	limit 1
+    </select>
+    
+    <insert id="insertAliMemberKp" parameterType="hashmap">
+    	insert into ali_member_kp (username,kp,insert_time,valid)
+    	values (#{username},#{kp},now(),'Y')
+    </insert>
+    
+    <insert id="insertMember" parameterType="hashmap">
+    	INSERT INTO  pw_members(username, password, safecv, email, groupid, memberid, groups, 
+    							icon, gender, regdate, signature, introduce, oicq, 
+    							aliww, icq, msn, yahoo, site, location, honor, bday, lastaddrst,
+    							yz, timedf, style, datefm, t_num, p_num, attach, hack, newpm, banpm, 
+    							msggroups, medals, userstatus, shortcut, authmobile, realname, apartment, home) 
+    	VALUES (#{username}, #{password}, '', '', #{groupid}, 8, '', '', 0, 
+    			unix_timestamp(), '', '', '', '', '', '', '', '', '', '', now(), '', 1, '', '', '', 0, 0, '', 
+    			'0', 0, '', '', '', 0, '', '', '', 0, 0)
+    </insert>
+    
+    <insert id="insertMemberdata" parameterType="hashmap">
+    	INSERT INTO  pw_memberdata(uid, postnum, digests, rvrc, money, credit, currency, lastvisit, thisvisit, 
+    								lastpost, onlinetime, monoltime, todaypost, monthpost, uploadtime, uploadnum, 
+    								follows, fans, newfans, newreferto, newcomment, onlineip, starttime, postcheck, 
+    								pwdctime, f_num, creditpop, jobnum, lastmsg, lastgrab, punch, shafa, newnotice, 
+    								newrequest, bubble) 
+    	VALUES (#{uid}, 0, 0, 0, 0, 0, 0, unix_timestamp(), unix_timestamp(), 0, 0, 0, 
+    			0, 0, 0, 0, 0, 0, 0, 0, 0, #{onlineip}, 
+    			0, '', 0, 0, '', 0, 0, 0, 0, 0, 0, 0, '')
+    </insert>
+    
+    <insert id="insertMemberinfo" parameterType="hashmap">
+    	INSERT INTO  pw_memberinfo(uid, adsips, credit, deposit, startdate, ddeposit, dstartdate, regreason, readmsg, 
+    								delmsg, tooltime, replyinfo, lasttime, digtid, customdata, tradeinfo, field_12) 
+    	VALUES (#{uid}, '', '', 0, 0, 0, 0, '', '', '', '', '', 0, '', '', '', '')
+    </insert>
+    
+    <update id="updateMemberdataAfterReply" parameterType="hashmap">
+    	UPDATE  pw_memberdata   SET   
+    		postnum  =  postnum+1 , 
+    		todaypost  =  todaypost+1 ,  
+    		monthpost  =  monthpost+1 , 
+    		lastpost  =  unix_timestamp(),
+    		rvrc = rvrc+#{rvrc},
+    		money = money+#{money},
+    		credit = credit+#{credit},
+    		currency = currency+#{currency}
+    	WHERE uid= #{uid}
+    </update>
+    
+    <update id="updateUserstatusByUid" parameterType="hashmap">
+    	UPDATE  pw_members   
+    	SET userstatus = userstatus${userstatus}
+    	WHERE uid= #{uid}
+    </update>
+    
+    <update id="updateGroupidByUid" parameterType="hashmap">
+    	UPDATE  pw_members   
+    	SET groupid = #{groupid}
+    	WHERE uid= #{uid}
+    </update>
+    
+    <update id="updateAmount" parameterType="hashmap">
+    	UPDATE  pw_memberdata   SET   
+    		${sql} 
+    	WHERE uid= #{uid}
+    </update>
+    
+    <update id="updateUserIcon" parameterType="hashmap">
+    	UPDATE  pw_members   SET   icon  =  #{icon}  WHERE uid= #{uid}
+    </update>
+    
+    <update id="updateMemberdataAfterThread" parameterType="hashmap">
+    	UPDATE  pw_memberdata   SET   
+    		postnum  =  postnum+1 , 
+    		todaypost  =  todaypost+1 ,  
+    		monthpost  =  monthpost+1 , 
+    		lastpost  =  unix_timestamp(),
+    		rvrc = rvrc+#{rvrc},
+    		money = money+#{money},
+    		credit = credit+#{credit},
+    		currency = currency+#{currency}
+    	WHERE uid= #{uid}
+    </update>
+    
+ 	<select id="getAliMemberSetting" parameterType="string" resultType="int">
+ 		select ms.is_validate_open from ali_members_setting ms
+		left join pw_members m on ms.uid = m.uid
+		left join ali_member_kp mk on (m.username = mk.username and mk.valid = 'Y')
+		where mk.kp = #{kp}
+		limit 1
+ 	</select>
+ 	
+ 	<update id="updateMemberCache" parameterType="hashmap">
+ 		UPDATE `pw_cache_members` SET expire = 0 WHERE ckey = #{ckey}
+ 	</update>
+ 	
+ 	<select id="getMemberVisit" parameterType="int" resultType="string">
+ 		select visit from pw_singleright where uid=#{value}
+ 	</select>
+</mapper>

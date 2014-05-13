@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.MessageDao">
+    
+    <resultMap type="com.yunos.bbs.po.Message" id="Message"></resultMap>
+    
+    <select id="getMessageCountByUid" parameterType="hashmap" resultType="int">
+ 		SELECT count(uid) as msgs
+ 		FROM pw_ms_relations
+ 		where 
+ 			uid = ${uid} and status = '1'
+ 	</select>
+ 	
+ 	<select id="getMemberMsgs" parameterType="hashmap" resultMap="Message">
+ 	  select 
+		  mm.content
+	  from pw_ms_relations mr
+	  left join pw_ms_messages mm on mr.mid = mm.mid
+	  where mr.uid = ${uid}
+	  ORDER BY mm.created_time desc
+	  limit #{start},#{size}
+ 	</select>
+ 	
+ 	<select id="updateMemberMsgs" parameterType="hashmap" >
+ 		UPDATE pw_ms_relations
+ 		SET status = '1'
+ 		where 
+ 			uid = #{uid} and mid = #{mid} and status = '0'
+ 	</select>
+    
+</mapper>

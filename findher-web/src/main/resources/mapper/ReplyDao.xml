@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper 
+	PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.yunos.bbs.dao.ReplyDao">
+	
+	<resultMap type="com.yunos.bbs.po.Reply" id="Reply"></resultMap>
+    <select id="getReplyList" parameterType="hashmap" resultMap="Reply">
+    	select p.pid as rid,p.content as content,p.author as username,m.icon as uImg,p.postdate as time,p.subject as title
+    	from ${ptable} p 
+    	left join pw_threads t on t.tid = p.tid
+    	left join pw_members m on p.authorid = m.uid
+		where p.tid=#{tid} and p.ifshield = 0 and p.ifhide = 0 
+			and t.ifshield = 0 and t.special = 0
+			<if test="authorid != null">
+    		and p.authorid = #{authorid}
+    		</if>
+			order by p.postdate ${orderBy}
+			limit #{start},#{size}
+    </select>
+    
+	<insert id="insertReply" parameterType="hashmap">
+		INSERT INTO  ${ptable} (pid,fid, tid, aid, author, authorid, icon, postdate, subject, userip, ifsign, 
+				buy, alterinfo, remindinfo, leaveword, ipfrom, ifconvert, ifwordsfb, ifcheck, content, ifmark,
+				ifreward, ifshield, anonymous, ifhide, frommob) 
+		VALUES (#{pid},#{fid}, #{tid}, 0, #{author}, #{authorid}, 0, UNIX_TIMESTAMP(), 
+			#{subject}, '0.0.0.0', 1, '', '', '', '', 
+			'手机端', 1, 1, 1, #{content}, '', 0, 0, 0, 0, 0)
+	</insert>
+	
+	<resultMap type="com.yunos.bbs.po.Attachs" id="Attachs"></resultMap>
+	<select id="getReplyAttachs" parameterType="hashmap" resultMap="Attachs">
+ 		select t1.aid as aid,t1.name as name,t1.size as size,t1.hits as dwn,t1.attachurl as url,t1.type as type,t1.descrip as descrip
+ 		from pw_attachs t1
+ 		where t1.pid = #{pid}
+ 	</select>
+ 	
+ 	<select id="getUserReplyCount" parameterType="hashmap" resultType="int">
+ 		select count(pid)  from ${ptable} where tid = #{tid} and author = #{username}
+ 	</select>
+ 	
+ 	<insert id="insertReplyFrom" parameterType="hashmap">
+ 		INSERT INTO  wap_posts_from(pid, phone_type_id)
+ 		values (#{pid},#{phone_type_id})
+ 	</insert>
+ 	
+ 	<insert id="insertPid" parameterType="hashmap" useGeneratedKeys="true" keyProperty="pid" keyColumn="pid">
+ 		<selectKey resultType="int" keyProperty="pid" order="AFTER">
+		    SELECT LAST_INSERT_ID()
+		</selectKey>
+		insert into pw_pidtmp(pid) values(#{pid})
+ 	</insert>
+ 	
+ 	<select id="getReplyByPid" parameterType="hashmap" resultMap="Reply">
+ 		select p.pid as rid,p.content as content,p.author as username,m.icon as uImg,p.postdate as time,p.subject as title
+    	from ${ptable} p 
+    	left join pw_members m on p.authorid = m.uid
+		where p.pid=#{pid}
+ 	</select>
+
+</mapper>
